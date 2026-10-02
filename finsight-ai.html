@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FinSight Copilot – Credit Underwriting Copilot</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f6f9;--card:#fff;--tx:#14213d;--mu:#5b6578;--bd:#e0e5ee;--ac:#0f766e;--lo:#15803d;--me:#b45309;--hi:#b91c1c;--lob:#dcfce7;--meb:#fef3c7;--hib:#fee2e2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1420;--card:#172033;--tx:#e8edf7;--mu:#94a1b8;--bd:#2a3550;--ac:#2dd4bf;--lo:#4ade80;--me:#fbbf24;--hi:#f87171;--lob:#14351f;--meb:#3a2d0c;--hib:#3d1717}}
+:root[data-theme="dark"]{--bg:#0e1420;--card:#172033;--tx:#e8edf7;--mu:#94a1b8;--bd:#2a3550;--ac:#2dd4bf;--lo:#4ade80;--me:#fbbf24;--hi:#f87171;--lob:#14351f;--meb:#3a2d0c;--hib:#3d1717}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+h1{font-size:20px;margin:0}h2{font-size:16px;margin:0 0 10px}h3{font-size:13px;margin:14px 0 6px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+.mu{color:var(--mu);font-size:13px}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px}
+input,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+button{padding:10px 14px;border:0;border-radius:8px;background:var(--ac);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button.alt{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+:root[data-theme="dark"] button:not(.alt){color:#062925}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:780px){.grid{grid-template-columns:320px 1fr}}
+.login{max-width:380px;margin:8vh auto}
+.hint{background:var(--bg);border:1px dashed var(--bd);border-radius:8px;padding:10px;font-size:13px;margin-top:12px}
+.err{color:var(--hi);font-size:13px;margin-top:8px;min-height:18px}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-weight:700;font-size:13px}
+.Low{background:var(--lob);color:var(--lo)}.Medium{background:var(--meb);color:var(--me)}.High{background:var(--hib);color:var(--hi)}
+.bar{height:8px;background:var(--bd);border-radius:4px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--ac)}
+.f{margin:8px 0}.f b{font-size:14px}
+.pol{border-left:3px solid var(--ac);padding:6px 10px;margin:8px 0;background:var(--bg);border-radius:0 8px 8px 0;font-size:13px}
+.flag{background:var(--meb);color:var(--me);padding:10px;border-radius:8px;font-weight:600;font-size:13px;margin-top:12px}
+.hide{display:none}
+.audit div{font-size:12px;color:var(--mu);padding:3px 0;border-bottom:1px solid var(--bd)}
+</style></head><body><div class="wrap">
+
+<div id="login" class="card login">
+  <h1>FinSight Copilot</h1><p class="mu">Explainable credit underwriting copilot for SME lending</p>
+  <label for="em">Email</label><input id="em" type="email" autocomplete="off">
+  <label for="pw">Password</label><input id="pw" type="password" autocomplete="off">
+  <div class="err" id="err"></div>
+  <button id="go" style="width:100%">Sign in</button>
+  <div class="hint"><b>Demo credentials</b><br>Email: demo@example.com<br>Password: demo123</div>
+</div>
+
+<div id="app" class="hide">
+  <div class="top"><div><h1>FinSight Copilot</h1><span class="mu">Loan officer workspace</span></div>
+    <button class="alt" id="out">Log out</button></div>
+  <div class="grid">
+    <div class="card"><h2>Loan application</h2>
+      <label for="bn">Business name</label><input id="bn" value="">
+      <label for="rv">Annual revenue (PKR)</label><input id="rv" type="number" min="0">
+      <label for="yr">Years in business</label><input id="yr" type="number" min="0" step="0.5">
+      <label for="db">Existing debt (PKR)</label><input id="db" type="number" min="0">
+      <label for="ln">Loan amount requested (PKR)</label><input id="ln" type="number" min="0">
+      <div class="err" id="ferr"></div>
+      <div class="row"><button id="run">Generate credit memo</button><button class="alt" id="demo">Fill sample</button></div>
+    </div>
+    <div id="res" class="card"><h2>Credit memo</h2><p class="mu">Fill in the application and hit generate. You'll get a risk score, the policies retrieved, and a draft memo for human review.</p></div>
+  </div>
+</div>
+</div>
+
+<script>
+const POL=[
+{id:"POL-01",t:"Leverage limit",x:"Existing debt above 50% of annual revenue requires senior approver review. Above 80% the application must be declined.",k:"debt leverage ratio revenue existing obligations"},
+{id:"POL-02",t:"Loan sizing",x:"Unsecured SME loans should not exceed 35% of annual revenue; up to 60% is allowed with acceptable collateral.",k:"loan amount sizing revenue unsecured collateral"},
+{id:"POL-03",t:"Business vintage",x:"Businesses under 2 years old need a guarantor or collateral. Applicants with 2 to 5 years follow standard review.",k:"years business vintage young guarantor startup"},
+{id:"POL-04",t:"Human-in-the-loop",x:"All AI recommendations are advisory. A loan officer must review and sign off before any decision is communicated.",k:"human review approval audit compliance sign-off"},
+{id:"POL-05",t:"Documentation",x:"Collect 12 months of bank statements, latest tax return and business registration before final approval.",k:"documents statements tax verification registration"},
+{id:"POL-06",t:"Low-risk fast track",x:"Low-risk applicants with debt under 15% of revenue and 5+ years in business may use the fast-track queue.",k:"fast track low risk eligible queue"},
+{id:"POL-07",t:"Explainability",x:"Every decision must list the factors behind it. Protected attributes must never be used in scoring.",k:"explain factors fair adverse reasons transparency"}
+];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>"PKR "+Math.round(n).toLocaleString("en-US");
+const pct=n=>(n*100).toFixed(0)+"%";
+let audit=[],cur=null;
+
+$("go").onclick=()=>{
+  if($("em").value.trim().toLowerCase()==="demo@example.com"&&$("pw").value==="demo123"){
+    $("login").classList.add("hide");$("app").classList.remove("hide");$("err").textContent="";
+  }else $("err").textContent="Wrong email or password. Use the demo credentials below.";
+};
+$("pw").onkeydown=e=>{if(e.key==="Enter")$("go").click()};
+$("out").onclick=()=>{$("app").classList.add("hide");$("login").classList.remove("hide");$("pw").value="";audit=[];cur=null};
+$("demo").onclick=()=>{$("bn").value="Karim Textiles";$("rv").value=12000000;$("yr").value=3;$("db").value=4500000;$("ln").value=3000000};
+$("run").onclick=()=>{
+  const a={name:$("bn").value.trim(),rev:+$("rv").value,yrs:+$("yr").value,debt:+$("db").value,loan:+$("ln").value};
+  if(!a.name||!(a.rev>0)||$("yr").value===""||$("db").value===""||!(a.loan>0)){$("ferr").textContent="Please fill every field (revenue and loan must be above 0).";return}
+  $("ferr").textContent="";audit=[];cur=build(a);render(cur);
+};
+
+function score(a){
+  const dtr=a.debt/a.rev,ltr=a.loan/a.rev,y=a.yrs,f=[];
+  f.push({n:"Debt-to-revenue",p:dtr>.8?4:dtr>.5?3:dtr>.3?2:dtr>.15?1:0,d:pct(dtr)+" of annual revenue",k:"debt leverage ratio revenue existing obligations"});
+  f.push({n:"Loan-to-revenue",p:ltr>.8?4:ltr>.6?3:ltr>.35?2:ltr>.2?1:0,d:pct(ltr)+" of annual revenue",k:"loan amount sizing revenue unsecured collateral"});
+  f.push({n:"Years in business",p:y<1?4:y<2?3:y<5?2:y<8?1:0,d:y+" year(s) trading",k:"years business vintage young guarantor"});
+  const tot=f.reduce((s,x)=>s+x.p,0);
+  return{dtr,ltr,f,tot,level:tot<=3?"Low":tot<=7?"Medium":"High"};
+}
+const tok=s=>s.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>2);
+function retrieve(q){
+  const docs=POL.map(p=>tok(p.k+" "+p.t+" "+p.x));
+  const idf=w=>Math.log(1+POL.length/(1+docs.filter(d=>d.includes(w)).length));
+  const qs=[...new Set(tok(q))],max=qs.reduce((s,w)=>s+idf(w),0)||1;
+  return POL.map((p,i)=>({p,s:qs.reduce((s,w)=>s+(docs[i].includes(w)?idf(w):0),0)/max}))
+    .filter(r=>r.s>0).sort((a,b)=>b.s-a.s).slice(0,4);
+}
+function build(a){
+  const s=score(a);
+  let q="human review approval audit explain factors";
+  s.f.forEach(x=>{if(x.p>0)q+=" "+x.k});
+  if(s.level==="Low")q+=" fast track low risk eligible";
+  if(s.level!=="Low")q+=" documents statements verification";
+  const hits=retrieve(q);
+  let rec=s.level==="Low"?"Approve":s.level==="Medium"?"Review":"Reject";
+  let why=rec==="Approve"?"Risk is low across the key ratios.":rec==="Review"?"Moderate risk. Needs senior approver review and possibly collateral or a guarantor.":"Risk is high on the key ratios. Not recommended on current terms.";
+  if(s.dtr>.8){rec="Reject";why="Existing debt is above 80% of revenue, which is a hard decline under policy."}
+  return{a,s,hits,rec,why};
+}
+function render(m){
+  const{a,s,hits,rec,why}=m;
+  const fh=s.f.map(x=>`<div class="f"><b>${x.n}</b> <span class="mu">· ${x.d} · ${x.p}/4 pts</span><div class="bar"><i style="width:${x.p*25}%"></i></div></div>`).join("");
+  const ph=hits.map(r=>`<div class="pol"><b>[${r.p.id}] ${r.p.t}</b> <span class="mu">· match ${(r.s*100).toFixed(0)}%</span><br>${r.p.x}</div>`).join("");
+  const top=[...s.f].filter(x=>x.p>0).sort((x,y)=>y.p-x.p).map(x=>x.n.toLowerCase()).slice(0,2);
+  const cite=hits.slice(0,3).map(r=>r.p.id).join(", ");
+  $("res").innerHTML=`
+  <div class="row" style="justify-content:space-between"><h2 style="margin:0">Credit memo · ${esc(a.name)}</h2><span class="badge ${s.level}">${s.level} risk</span></div>
+  <h3>Applicant summary</h3>
+  <p>${esc(a.name)} has been trading for ${a.yrs} year(s) with annual revenue of ${fmt(a.rev)} and existing debt of ${fmt(a.debt)}. It is asking for ${fmt(a.loan)}.</p>
+  <h3>Risk score: ${s.tot}/12</h3>${fh}
+  <p class="mu">${top.length?"Main drivers: "+top.join(" and ")+".":"No factor raised any risk points."}</p>
+  <h3>Policies retrieved</h3>${ph}
+  <h3>Recommendation</h3>
+  <p><span class="badge ${rec==="Approve"?"Low":rec==="Review"?"Medium":"High"}">${rec.toUpperCase()}</span> ${why} Cited: ${cite}.</p>
+  <div class="flag">⚠ Human review required. This is an AI-drafted recommendation and no decision is final until a loan officer signs off.</div>
+  <h3>Loan officer decision</h3>
+  <textarea id="note" rows="2" placeholder="Add a review note (optional)"></textarea>
+  <div class="row" style="margin-top:8px"><button onclick="decide('Approved')">Approve</button><button class="alt" onclick="decide('Sent for senior review')">Send to senior</button><button class="alt" onclick="decide('Rejected')">Reject</button></div>
+  <div class="audit" id="aud" style="margin-top:10px"></div>
+  <p class="mu" style="margin-top:12px">Demo note: scoring is rule-based and policy retrieval runs in the browser on a 7-policy sample. The full build would use ChromaDB embeddings and an LLM for the memo text.</p>`;
+  $("res").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function decide(d){
+  const n=($("note").value||"").trim();
+  audit.push(`${new Date().toLocaleTimeString()} · demo@example.com · AI said ${cur.rec} → officer: ${d}${n?" · note: "+esc(n):""}`);
+  $("aud").innerHTML="<h3>Audit trail</h3>"+audit.map(x=>`<div>${x}</div>`).join("");
+}
+</script></body></html>
